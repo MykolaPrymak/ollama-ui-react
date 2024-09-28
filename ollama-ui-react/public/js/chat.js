@@ -81,10 +81,10 @@ async function populateModels() {
   }
   catch (error) {
     document.getElementById('errorText').innerHTML =
-    DOMPurify.sanitize(marked.parse(
-    `Ollama-ui was unable to communitcate with Ollama due to the following error:\n\n`
-    + `\`\`\`${error.message}\`\`\`\n\n---------------------\n`
-    + faqString));
+      DOMPurify.sanitize(marked.parse(
+        `Ollama-ui was unable to communitcate with Ollama due to the following error:\n\n`
+        + `\`\`\`${error.message}\`\`\`\n\n---------------------\n`
+        + faqString));
     let modal = new bootstrap.Modal(document.getElementById('errorModal'));
     modal.show();
   }
@@ -97,57 +97,68 @@ function adjustPadding() {
   scrollWrapper.style.paddingBottom = `${inputBoxHeight + 15}px`;
 }
 
-// sets up padding resize whenever input box has its height changed
-const autoResizePadding = new ResizeObserver(() => {
-  adjustPadding();
-});
-autoResizePadding.observe(document.getElementById('input-area'));
+var autoScroller;
+function setupListeners() {
+  // sets up padding resize whenever input box has its height changed
+  const autoResizePadding = new ResizeObserver(() => {
+    adjustPadding();
+  });
+  autoResizePadding.observe(document.getElementById('input-area'));
 
 
+  // variables to handle auto-scroll
+  // we only need one ResizeObserver and isAutoScrollOn variable globally
+  // no need to make a new one for every time submitRequest is called
+  const scrollWrapper = document.getElementById('scroll-wrapper');
+  let isAutoScrollOn = true;
+  // autoscroll when new line is added
+
+  // const 
+  autoScroller = new ResizeObserver(() => {
+    if (isAutoScrollOn) {
+      scrollWrapper.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  });
+
+  // event listener for scrolling
+  let lastKnownScrollPosition = 0;
+  let ticking = false;
+  document.addEventListener("scroll", (event) => {
+    // if user has scrolled up and autoScroll is on we turn it off
+    if (!ticking && isAutoScrollOn && window.scrollY < lastKnownScrollPosition) {
+      window.requestAnimationFrame(() => {
+        isAutoScrollOn = false;
+        ticking = false;
+      });
+      ticking = true;
+    }
+    // if user has scrolled nearly all the way down and autoScroll is disabled, re-enable
+    else if (!ticking && !isAutoScrollOn &&
+      window.scrollY > lastKnownScrollPosition && // make sure scroll direction is down
+      window.scrollY >= document.documentElement.scrollHeight - window.innerHeight - 30 // add 30px of space--no need to scroll all the way down, just most of the way
+    ) {
+      window.requestAnimationFrame(() => {
+        isAutoScrollOn = true;
+        ticking = false;
+      });
+      ticking = true;
+    }
+    lastKnownScrollPosition = window.scrollY;
+  });
+
+  // Event listener for Ctrl + Enter or CMD + Enter
+  document.getElementById('user-input').addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      submitRequest();
+    }
+  });
+
+}
 
 // Function to get the selected model
 function getSelectedModel() {
   return document.getElementById('model-select').value;
 }
-
-// variables to handle auto-scroll
-// we only need one ResizeObserver and isAutoScrollOn variable globally
-// no need to make a new one for every time submitRequest is called
-const scrollWrapper = document.getElementById('scroll-wrapper');
-let isAutoScrollOn = true;
-// autoscroll when new line is added
-const autoScroller = new ResizeObserver(() => {
-  if (isAutoScrollOn) {
-    scrollWrapper.scrollIntoView({behavior: "smooth", block: "end"});
-  }
-});
-
-// event listener for scrolling
-let lastKnownScrollPosition = 0;
-let ticking = false;
-document.addEventListener("scroll", (event) => {
-  // if user has scrolled up and autoScroll is on we turn it off
-  if (!ticking && isAutoScrollOn && window.scrollY < lastKnownScrollPosition) {
-    window.requestAnimationFrame(() => {
-      isAutoScrollOn = false;
-      ticking = false;
-    });
-    ticking = true;
-  }
-  // if user has scrolled nearly all the way down and autoScroll is disabled, re-enable
-  else if (!ticking && !isAutoScrollOn &&
-    window.scrollY > lastKnownScrollPosition && // make sure scroll direction is down
-    window.scrollY >= document.documentElement.scrollHeight - window.innerHeight - 30 // add 30px of space--no need to scroll all the way down, just most of the way
-  ) {
-    window.requestAnimationFrame(() => {
-      isAutoScrollOn = true;
-      ticking = false;
-    });
-    ticking = true;
-  }
-  lastKnownScrollPosition = window.scrollY;
-});
-
 
 // Function to handle the user input and call the API functions
 async function submitRequest() {
@@ -213,7 +224,7 @@ async function submitRequest() {
         }
         // add word to response
         if (word != undefined && word != "") {
-          if (responseDiv.hidden_text == undefined){
+          if (responseDiv.hidden_text == undefined) {
             responseDiv.hidden_text = "";
           }
           responseDiv.hidden_text += word;
@@ -239,28 +250,6 @@ async function submitRequest() {
   $(element).css("height", textBoxBaseHeight + "px");
 }
 
-// Event listener for Ctrl + Enter or CMD + Enter
-document.getElementById('user-input').addEventListener('keydown', function (e) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-    submitRequest();
-  }
-});
-
-
-window.onload = () => {
-  updateChatList();
-  populateModels();
-  adjustPadding();
-  autoFocusInput();
-
-  document.getElementById("delete-chat").addEventListener("click", deleteChat);
-  document.getElementById("new-chat").addEventListener("click", startNewChat);
-  document.getElementById("saveName").addEventListener("click", saveChat);
-  document.getElementById("chat-select").addEventListener("change", loadSelectedChat);
-  document.getElementById("host-address").addEventListener("change", setHostAddress);
-  document.getElementById("system-prompt").addEventListener("change", setSystemPrompt);
-}
-
 function deleteChat() {
   const selectedChat = document.getElementById("chat-select").value;
   localStorage.removeItem(selectedChat);
@@ -280,7 +269,7 @@ function saveChat() {
   const context = document.getElementById('chat-history').context;
   const systemPrompt = document.getElementById('system-prompt').value;
   const model = getSelectedModel();
-  localStorage.setItem(chatName, JSON.stringify({"history":history, "context":context, system: systemPrompt, "model": model}));
+  localStorage.setItem(chatName, JSON.stringify({ "history": history, "context": context, system: systemPrompt, "model": model }));
   updateChatList();
 }
 
@@ -296,10 +285,10 @@ function loadSelectedChat() {
 }
 
 function startNewChat() {
-    document.getElementById("chat-history").innerHTML = null;
-    document.getElementById("chat-history").context = null;
-    document.getElementById('chat-container').style.display = 'none';
-    updateChatList();
+  document.getElementById("chat-history").innerHTML = null;
+  document.getElementById("chat-history").context = null;
+  document.getElementById('chat-container').style.display = 'none';
+  updateChatList();
 }
 
 // Function to update chat list dropdown
@@ -317,21 +306,43 @@ function updateChatList() {
 }
 
 function autoGrow(element) {
-    const maxHeight = 200;  // This should match the max-height set in CSS
+  const maxHeight = 200;  // This should match the max-height set in CSS
+  // Count the number of lines in the textarea based on newline characters
+  const numberOfLines = $(element).val().split('\n').length;
 
-    // Count the number of lines in the textarea based on newline characters
-    const numberOfLines = $(element).val().split('\n').length;
+  // Temporarily reset the height to auto to get the actual scrollHeight
+  $(element).css("height", "auto");
+  let newHeight = element.scrollHeight;
 
-    // Temporarily reset the height to auto to get the actual scrollHeight
-    $(element).css("height", "auto");
-    let newHeight = element.scrollHeight;
+  // If content is one line, set the height to baseHeight
+  if (numberOfLines === 1) {
+    newHeight = textBoxBaseHeight;
+  } else if (newHeight > maxHeight) {
+    newHeight = maxHeight;
+  }
 
-    // If content is one line, set the height to baseHeight
-    if (numberOfLines === 1) {
-        newHeight = textBoxBaseHeight;
-    } else if (newHeight > maxHeight) {
-        newHeight = maxHeight;
-    }
+  $(element).css("height", newHeight + "px");
+}
 
-    $(element).css("height", newHeight + "px");
+var isChatInitialized = false;
+function initChat() {
+  if (isChatInitialized) {
+    return;
+  }
+
+  isChatInitialized = true;
+  initAPI();
+  setupListeners();
+
+  updateChatList();
+  populateModels();
+  adjustPadding();
+  autoFocusInput();
+
+  document.getElementById("delete-chat").addEventListener("click", deleteChat);
+  document.getElementById("new-chat").addEventListener("click", startNewChat);
+  document.getElementById("saveName").addEventListener("click", saveChat);
+  document.getElementById("chat-select").addEventListener("change", loadSelectedChat);
+  document.getElementById("host-address").addEventListener("change", setHostAddress);
+  document.getElementById("system-prompt").addEventListener("change", setSystemPrompt);
 }
