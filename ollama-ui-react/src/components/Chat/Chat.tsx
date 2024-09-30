@@ -1,15 +1,11 @@
 import React, { useEffect } from "react";
 
+import {autoGrow, initChat} from "../../api/chat";
+
 
 export const Chat: React.FC = () => {
-    const autoGrow = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        // auto-grow function logic goes here
-        // const bindedFn = (window as any).autoGrow.bind(window)
-        (window as any).autoGrow(e.target)
-    };
-
     useEffect(() => {
-        (window as any).initChat()
+        initChat();
     }, [])
 
     return (<>
@@ -58,7 +54,7 @@ export const Chat: React.FC = () => {
 
                 <div className="container p-2 card" id="input-area">
                     <div className="input-group">
-                        <textarea className="form-control" id="user-input" placeholder="Type your question here..." onInput={autoGrow}></textarea>
+                        <textarea className="form-control" id="user-input" placeholder="Type your question here..." onInput={evt => autoGrow(evt.target)}></textarea>
                         <button id="send-button" className="btn btn-primary">Send</button>
                     </div>
                 </div>
