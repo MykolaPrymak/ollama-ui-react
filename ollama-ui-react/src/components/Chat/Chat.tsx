@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
-
 import { autoGrow, initChat } from "../../api/chat";
+import './chat.css'
 
 const ChatHistory: React.FC = () => (
     <div id="scroll-wrapper">

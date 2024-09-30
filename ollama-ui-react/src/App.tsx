@@ -1,5 +1,6 @@
 // import { useState } from 'react'
 import './App.css'
+import './assets/bootstrap.min.css'
 import Chat from "./components/Chat"
 
 function App() {
